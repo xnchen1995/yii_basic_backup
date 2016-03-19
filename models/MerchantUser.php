@@ -67,8 +67,7 @@ class MerchantUser extends ActiveRecord implements IdentityInterface
             ['verifyCode','captcha','on' =>'login'],     //captcha
 //            注册
             [['phone','smsVerifyCode','password','verifyPassword'],'required','on' => 'register','message' =>'{attribute}不能为空'],
-//          还没写
-//            ['smsVerifyCode','on' => 'register'],     //verify sms verifyCode
+            ['smsVerifyCode','validateSms','on' => 'register'],     //verify sms verifyCode
             ['verifyPassword','compare','compareAttribute' => 'password','on' =>'register','message' =>'两次输入的密码不一致，请重新输入'],  //Verify Password
 
         ];
@@ -87,7 +86,35 @@ class MerchantUser extends ActiveRecord implements IdentityInterface
     {
         return static::findOne(['phone' => $phone]);
     }
+    public function validateSms($attribute)
+    {
+        if(!$this->hasErrors())
+        {
+            $session = \Yii::$app->session;
+            $session->open();
+            if($session->has('phone') && $session['phone']['validTime']>time())
+            {
+                $phone = static::findByPhone($this->phone);
+                if(!$phone)
+                {
+                    if($this->phone!=$session['phone']['phoneNumber'] || $this->smsVerifyCode!=$session['phone']['smsVerify'])
+                    {
+                        $this->addError($attribute,'验证码错误');
+                    }
+                }
+                else
+                {
+                    $this->addError($attribute,'账号已存在，请直接登录或重置密码');
+                }
+            }
+            else
+            {
+                $this->addError($attribute,'验证码失效，请重新输入');
+            }
+            $session->close();
 
+        }
+    }
     public function validatePassword($attribute)
     {
         if (!$this->hasErrors()) {

@@ -47,7 +47,14 @@ class BackupController extends Controller{
     public function actionRegister()
     {
         $model = new MerchantUser(['scenario'=>'register']);
-        return $this->render('register',['model' => $model]);
+        if($model->load(\Yii::$app->request->post()) && $model->save()){
+            return $this->redirect(Url::toRoute('backup/index'));
+        }
+        else
+        {
+            return $this->render('register',['model' => $model]);
+        }
+
     }
     public function actionSms()
     {
@@ -57,12 +64,27 @@ class BackupController extends Controller{
             $num = $request->post('num');
 
             $havephone= MerchantUser::findByPhone("$num");
-            if($havephone)
+            if(!$havephone)
             {
-//              $this->sendSMS("$num",array('8888','10'),"1");
-//                echo "have";
                 $session = \Yii::$app->session;
-                echo $session->isActive ? true :false;
+                $session->open();
+                if($session->isActive)
+                {
+                    $smsVerify=rand(100000,999999);
+                    $validTime = time()+600;
+//                    $success=$this->sendSMS("$num",array("$smsVerify",'10'),"1");
+                    $success = true;
+                    if($success==true)
+                    {
+                        $session['phone']=[
+                            'phoneNumber'=>"$num",
+                            'validTime'=>$validTime,
+                            'smsVerify'=>$smsVerify
+                        ];
+                    }
+                    $session->close();
+                    echo $smsVerify;
+                }
             }
             else
             {
@@ -76,33 +98,39 @@ class BackupController extends Controller{
         $request = \Yii::$app->request;
         $num = $request->post('num',15659675727);
         $havephone= MerchantUser::findByPhone("$num");
-        if($havephone)
+        if(!$havephone)
         {
-            echo "have";
             $session = \Yii::$app->session;
             $session->open();
             if($session->isActive)
             {
-//                $session->setTimeout(5);
-                $session['phone'] ="$num";
-                echo $session['phone'];
-                echo "1";
-//                $session->destroy();
-                $session->close();
-                sleep(15);
-                $session->open();
-                echo $session['phone'];
-                echo "2";
-                $session->close();
-            }
+                $smsVerify=rand(100000,999999);
+                $validTime = time()+600;
+                $success=$this->sendSMS("$num",array("$smsVerify",'10'),"1");
+                if($success==true)
+                {
+                    $session['phone']=[
+                        'phoneNumber'=>"$num",
+                        'validTime'=>$validTime,
+                        'smsVerify'=>$smsVerify
+                    ];
+                }
+//                echo $session->has('phone')? "有":"没有";
 
-//            if($session->isActive)
-//            echo ($session->isActive ? "true" : "false");
-//            print_r($session->isActive);
+                echo $session['phone']['smsVerify'];
+                $session->close();
+                echo $smsVerify;
+//                $session->remove($session['phone']);
+//                $session->open();
+//                $session->remove('phone');
+//                print_r($session['phone']);
+//                echo $session->has('phone')? "有":"没有";
+//                $session->close();
+
+            }
         }
         else
         {
-//                echo "null";
         }
     }
     public function sendSMS($to,$datas,$tempId)
@@ -143,6 +171,7 @@ class BackupController extends Controller{
         if($result->statusCode!=0) {
 //            echo "error code :" . $result->statusCode . "<br>";
 //            echo "error msg :" . $result->statusMsg . "<br>";
+            return false;
             //TODO 添加错误处理逻辑
         }else{
 //            echo "Sendind TemplateSMS success!<br/>";
@@ -151,8 +180,9 @@ class BackupController extends Controller{
 //            echo $smsmessage->
 //            echo "dateCreated:".$smsmessage->dateCreated."<br/>";
 //            echo "smsMessageSid:".$smsmessage->smsMessageSid."<br/>";
-            echo $smsmessage->smsMessageSid;
+//            echo $smsmessage->smsMessageSid;
             //TODO 添加成功处理逻辑
+            return true;
         }
     }
 
