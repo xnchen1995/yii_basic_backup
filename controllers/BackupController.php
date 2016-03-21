@@ -10,6 +10,8 @@ namespace app\controllers;
 use yii\helpers\Url;
 use yii\web\Controller;
 use app\models\MerchantUser;
+use app\models\MerchantUserForm;
+
 require_once("../vendor/msm/CCPRestSmsSDK.php");
 
 class BackupController extends Controller{
@@ -28,6 +30,7 @@ class BackupController extends Controller{
         ];
     }
 
+    /*登录页面控制器 */
     public function actionIndex()
     {
         if(!\Yii::$app->user->isGuest){
@@ -43,11 +46,15 @@ class BackupController extends Controller{
             return $this->render('index',[ 'model' => $model ] );
         }
     }
-
+    /*注册页面*/
     public function actionRegister()
     {
         $model = new MerchantUser(['scenario'=>'register']);
-        if($model->load(\Yii::$app->request->post()) && $model->save()){
+        if($model->load(\Yii::$app->request->post()) && $model->validate() &&$model->save()){
+            $session = \Yii::$app->session;
+            $session->open();
+            $session->remove('phone');
+            $session->close();
             return $this->redirect(Url::toRoute('backup/index'));
         }
         else
@@ -56,6 +63,114 @@ class BackupController extends Controller{
         }
 
     }
+    /*重置密码首页*/
+    public function actionResetfirst()
+    {
+        $model = new MerchantUser(['scenario' => 'resetFirst']);
+        if($model->load(\Yii::$app->request->post()) && $model->validate())
+        {
+            $data = \Yii::$app->request->post('MerchantUser');
+            $session =\Yii::$app->session;
+            $session->open();
+            $session['resetPassword']=[
+                'phone' => $data['phone'],
+            ];
+            $session->close();
+            return $this->redirect(Url::toRoute('backup/resetsecond'));
+        }
+        else
+        {
+            return $this->render('resetfirst',['model' => $model]);
+        }
+    }
+    public function  actionResetthird()
+    {
+        $model = new MerchantUser(['scenario'=>'resetThird']);
+        if($model->load(\Yii::$app->request->post()) && $model->validate())
+        {
+            $session = \Yii::$app->session;
+            $session->open();
+            $phone = $session['resetPassword']['phone'];
+            $session->close();
+            $data = \Yii::$app->request->post();
+            print_r($data);
+            $model->save();
+
+            $database = MerchantUserForm::findOne($phone);
+            print_r($database);
+            $database->password =$data['MerchantUser']['password'];
+            print_r($database);
+            $database->
+//            if($database->save()!=false)
+//            {
+//                return "true";
+//            }
+//            else
+//            {
+//                return "false";
+//            }
+
+        }
+        else
+        {
+            $session = \Yii::$app->session;
+            $session->open();
+            $phone = $session['resetPassword']['phone'];
+            $displayphone = substr($phone,0,4).'****'.substr($phone,8);
+            $session->close();
+            return $this->render('resetthird',['model' => $model,'displayphone'=>$displayphone]);
+        }
+    }
+    /*重置密码手机验证码验证*/
+    public function actionResetsecond()
+    {
+        $model = new MerchantUser(['scenario'=>'resetSecond']);
+        if($model->load(\Yii::$app->request->post()) && $model->validate())
+        {
+            return $this->redirect(Url::toRoute('backup/resetthird'));
+        }
+        else
+        {
+//            print_r($model);
+            $session = \Yii::$app->session;
+            $session->open();
+//            print_r($session['resetPassword']);
+            $phone = $session['resetPassword']['phone'];
+            $displayphone = substr($phone,0,4).'****'.substr($phone,8);
+//            echo $displayphone;
+            $session->close();
+            return $this->render('resetsecond',['model' => $model,'displayphone'=>$displayphone]);
+        }
+    }
+
+    /*后台接口,ajax发送密码重置验证码*/
+    public function actionResetpawsms()
+    {
+        $request = \Yii::$app->request;
+        if($request->isPost)
+        {
+            $session = \Yii::$app->session;
+            $session->open();
+            $phone = $session['resetPassword']['phone'];
+            $smsVerify=rand(100000,999999);
+            $validTime = time()+600;
+//                    $success=$this->sendSMS("$phone",array("$smsVerify",'10'),"1");
+            $success = true;
+            if($success==true)
+            {
+
+                $session['resetPassword']=[
+                    'phone' => $phone,
+                    'validTime'=>$validTime,
+                    'smsVerify'=>$smsVerify
+                ];
+            }
+            $session->close();
+            echo $smsVerify;
+        }
+    }
+
+    /*后台接口，ajax发送注册验证码*/
     public function actionSms()
     {
         $request = \Yii::$app->request;
@@ -93,6 +208,8 @@ class BackupController extends Controller{
         }
 
     }
+
+    /*测试专用页面*/
     public function actionTest()
     {
         $request = \Yii::$app->request;
@@ -133,6 +250,7 @@ class BackupController extends Controller{
         {
         }
     }
+    /*发送短信验证码*/
     public function sendSMS($to,$datas,$tempId)
     {
         // 初始化REST SDK

@@ -21,8 +21,10 @@ class MerchantUser extends ActiveRecord implements IdentityInterface
     public $rememberMe = false;
 //    $property 验证码
     public $verifyCode;
-//    $property 手机短信验证码
+//    $property 注册手机短信验证码
     public $smsVerifyCode;
+//    $property 重置密码手机短信验证码
+    public $resetSmsVerify;
     //$property 确认密码
     public $verifyPassword;
     /**
@@ -57,19 +59,26 @@ class MerchantUser extends ActiveRecord implements IdentityInterface
     {
         return [
 //            通用去空格
-            [['phone','grade','password','storeName','nickName','verifyCode','verifyPassword'],'trim'],     //remove non-breaking space
+            [['phone','grade','password','storeName','nickName','verifyCode','verifyPassword','resetSmsVerify'],'trim'],     //remove non-breaking space
 //            登录
             [['phone','password','verifyCode'],'required','on' => 'login','message' => '{attribute}不能为空'],           //necessary
             ['phone','match','pattern'=>'/^1[0-9]{10}$/','message'=>'{attribute}必须为1开头的11位手机号'],    //phone number
             ['password', 'string', 'length' => [4, 20],"message" =>'{attribute}必须大于4位'], //length
             ['password', 'validatePassword', 'on' => 'login'],      //call function named validatePassword()
             ['rememberMe','boolean','on'=>'login'],     //remember password  whether or not
-            ['verifyCode','captcha','on' =>'login'],     //captcha
+            ['verifyCode','captcha'],     //captcha
 //            注册
             [['phone','smsVerifyCode','password','verifyPassword'],'required','on' => 'register','message' =>'{attribute}不能为空'],
             ['smsVerifyCode','validateSms','on' => 'register'],     //verify sms verifyCode
-            ['verifyPassword','compare','compareAttribute' => 'password','on' =>'register','message' =>'两次输入的密码不一致，请重新输入'],  //Verify Password
-
+            ['verifyPassword','compare','compareAttribute' => 'password','on' =>['register','resetThird'],'message' =>'两次输入的密码不一致，请重新输入'],  //Verify Password
+//            重置密码首页
+            [['phone','verifyCode'],'required','on' => 'resetFirst','message'=>'{attribute}不能为空'],
+            ['phone','validatePhoneExist','on'=>'resetFirst'],
+//            重置密码验证码页
+            ['resetSmsVerify','required', 'on'=>'resetSecond','message'=>'{attribute}不能为空'],
+            ['resetSmsVerify','validateResetPassword','on'=>'resetSecond'],
+//            重置密码 密码页
+            [['password','verifyPassword'],'required','on' => 'resetThird','message' => '{attribute}不能为空'],
         ];
     }
 
@@ -78,13 +87,55 @@ class MerchantUser extends ActiveRecord implements IdentityInterface
         $scenarios = parent::scenarios();
         $scenarios['login'] = ['phone','password','rememberMe','verifyCode'];
         $scenarios['register'] = ['phone','smsVerifyCode','password','verifyPassword'];
+        $scenarios['resetFirst'] = ['phone','verifyCode'];
+        $scenarios['resetSecond'] = ['resetSmsVerify'];
+        $scenarios['resetThird'] =['password','verifyPassword'];
         return $scenarios;
     }
-
     //
     public static function findByPhone($phone)
     {
         return static::findOne(['phone' => $phone]);
+    }
+    /**/
+    public function validatePhoneExist($attribute)
+    {
+        if(!$this->hasErrors())
+        {
+            $phone = static::findByPhone($this->phone);
+            if(!$phone)
+            {
+                $this->addError($attribute,'账号不存在');
+            }
+        }
+    }
+    public function validateResetPassword($attribute)
+    {
+        if(!$this->hasErrors())
+        {
+            $session = \Yii::$app->session;
+            $session->open();
+            if($session->has('resetPassword') && $session['resetPassword']['validTime']>time())
+            {
+                $phone = static::findByPhone($session['resetPassword']['phone']);
+                if($phone)
+                {
+                    if($this->resetSmsVerify!=$session['resetPassword']['smsVerify'])
+                    {
+                        $this->addError($attribute,'验证码错误');
+                    }
+                }
+                else
+                {
+                    $this->addError($attribute,'账号不存在');
+                }
+            }
+            else
+            {
+                $this->addError($attribute,'验证码失效，请重新输入');
+            }
+            $session->close();
+        }
     }
     public function validateSms($attribute)
     {
@@ -124,7 +175,6 @@ class MerchantUser extends ActiveRecord implements IdentityInterface
             }
         }
     }
-
     public function login(){
         if($this->validate())
         {

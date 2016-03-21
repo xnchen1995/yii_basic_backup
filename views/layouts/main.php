@@ -37,8 +37,9 @@ AppAsset::register($this);
         'options' => ['class' => 'navbar-nav navbar-right'],
         'items' => [
             ['label' => 'Register', 'url' => ['/backup/register']],
+            ['label' => 'reset', 'url' => ['/backup/resetfirst']],
             ['label' => 'test', 'url' => ['/backup/test']],
-//            ['label' => 'Contact', 'url' => ['/site/contact']],
+
 //            Yii::$app->user->isGuest ?
 //                ['label' => 'Login', 'url' => ['/site/login']] :
 //                [
