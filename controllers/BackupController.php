@@ -83,38 +83,30 @@ class BackupController extends Controller{
             return $this->render('resetfirst',['model' => $model]);
         }
     }
+
+    /**
+     * @return string
+     */
     public function  actionResetthird()
     {
+        $session = \Yii::$app->session;
+        $session->open();
         $model = new MerchantUser(['scenario'=>'resetThird']);
-        if($model->load(\Yii::$app->request->post()) && $model->validate())
+        if($model->load(\Yii::$app->request->post()) && $model->validate() && $session->has('resetPassword'))
         {
-            $session = \Yii::$app->session;
-            $session->open();
             $phone = $session['resetPassword']['phone'];
-            $session->close();
             $data = \Yii::$app->request->post();
-            print_r($data);
-            $model->save();
-
-            $database = MerchantUserForm::findOne($phone);
-            print_r($database);
+            $database = $model::findOne($phone);
             $database->password =$data['MerchantUser']['password'];
-            print_r($database);
-            $database->
-//            if($database->save()!=false)
-//            {
-//                return "true";
-//            }
-//            else
-//            {
-//                return "false";
-//            }
+            $database->save();
+            $session->remove('resetPassword');
+            $session->close();
+
+            return $this->redirect(Url::toRoute('backup/index'));
 
         }
         else
         {
-            $session = \Yii::$app->session;
-            $session->open();
             $phone = $session['resetPassword']['phone'];
             $displayphone = substr($phone,0,4).'****'.substr($phone,8);
             $session->close();

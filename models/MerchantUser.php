@@ -60,13 +60,13 @@ class MerchantUser extends ActiveRecord implements IdentityInterface
         return [
 //            通用去空格
             [['phone','grade','password','storeName','nickName','verifyCode','verifyPassword','resetSmsVerify'],'trim'],     //remove non-breaking space
-//            登录
-            [['phone','password','verifyCode'],'required','on' => 'login','message' => '{attribute}不能为空'],           //necessary
             ['phone','match','pattern'=>'/^1[0-9]{10}$/','message'=>'{attribute}必须为1开头的11位手机号'],    //phone number
             ['password', 'string', 'length' => [4, 20],"message" =>'{attribute}必须大于4位'], //length
+//            登录
+            [['phone','password','verifyCode'],'required','on' => 'login','message' => '{attribute}不能为空'],           //necessary
             ['password', 'validatePassword', 'on' => 'login'],      //call function named validatePassword()
             ['rememberMe','boolean','on'=>'login'],     //remember password  whether or not
-            ['verifyCode','captcha'],     //captcha
+            ['verifyCode','captcha','on'=>['login','resetFirst']],     //captcha
 //            注册
             [['phone','smsVerifyCode','password','verifyPassword'],'required','on' => 'register','message' =>'{attribute}不能为空'],
             ['smsVerifyCode','validateSms','on' => 'register'],     //verify sms verifyCode
