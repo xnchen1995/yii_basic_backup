@@ -10,9 +10,6 @@ $config = [
     'language' => 'zh-CN',
     'defaultRoute' => 'backup',
     'components' => [
-//        'session' =>[
-//            'timeout'=>10,
-//        ],
         'request' => [
             // !!! insert a secret key in the following (if it is empty) - this is required by cookie validation
             'cookieValidationKey' => 'xiaoen147',
@@ -21,7 +18,7 @@ $config = [
             'class' => 'yii\caching\FileCache',
         ],
         'user' => [
-            'identityClass' => 'app\models\User',
+            'identityClass' => 'app\models\MerchantUser',
             'enableAutoLogin' => true,
         ],
         'errorHandler' => [

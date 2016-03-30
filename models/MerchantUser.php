@@ -27,6 +27,10 @@ class MerchantUser extends ActiveRecord implements IdentityInterface
     public $resetSmsVerify;
     //$property 确认密码
     public $verifyPassword;
+//    $property 新密码
+    public $newPassword;
+//    $property 验证新密码
+    public $verifyNewPassword;
     /**
      * @inheritdoc
      */
@@ -48,8 +52,21 @@ class MerchantUser extends ActiveRecord implements IdentityInterface
             'grade' => '评分',
             'verifyCode' => '验证码',
             'smsVerifyCode' =>'短信验证码',
-            'verifyPassword' =>'确认密码'
+            'verifyPassword' =>'确认密码',
+            'newPassword'=>'新密码',
         ];
+    }
+    public function beforeSave($insert)
+    {
+        if(parent::beforeSave($insert))
+        {
+            if($this->isNewRecord)
+            {
+                $this->auth_key = \Yii::$app->security->generateRandomString();
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -79,6 +96,10 @@ class MerchantUser extends ActiveRecord implements IdentityInterface
             ['resetSmsVerify','validateResetPassword','on'=>'resetSecond'],
 //            重置密码 密码页
             [['password','verifyPassword'],'required','on' => 'resetThird','message' => '{attribute}不能为空'],
+//            修改密码
+            [['phone','password','newPassword','verifyNewPassword'],'required','on'=>'changePassword'],
+            [['newPassword','verifyNewPassword'],'string','length' => [4, 20],'on'=>'changePassword',"message" =>'{attribute}必须大于4位'],
+            ['verifyNewPassword', 'compare', 'compareAttribute' => 'newPassword', 'message' => '请重复输入新密码', 'on' => 'changePassword'], //newPassword与verifyNewPassword是否相同
         ];
     }
 
@@ -90,6 +111,7 @@ class MerchantUser extends ActiveRecord implements IdentityInterface
         $scenarios['resetFirst'] = ['phone','verifyCode'];
         $scenarios['resetSecond'] = ['resetSmsVerify'];
         $scenarios['resetThird'] =['password','verifyPassword'];
+        $scenarios['changePassword']=['password','newPassword','verifyNewPassword'];
         return $scenarios;
     }
     //
@@ -193,9 +215,9 @@ class MerchantUser extends ActiveRecord implements IdentityInterface
      * Null should be returned if such an identity cannot be found
      * or the identity is not in an active state (disabled, deleted, etc.)
      */
-    public static function findIdentity($id)
+    public static function findIdentity($phone)
     {
-        // TODO: Implement findIdentity() method.
+        return static ::findOne($phone);
     }
 
     /**
@@ -209,7 +231,7 @@ class MerchantUser extends ActiveRecord implements IdentityInterface
      */
     public static function findIdentityByAccessToken($token, $type = null)
     {
-        // TODO: Implement findIdentityByAccessToken() method.
+        return static::findOne(['access_token' => $token]);
     }
 
     /**
@@ -218,7 +240,7 @@ class MerchantUser extends ActiveRecord implements IdentityInterface
      */
     public function getId()
     {
-        // TODO: Implement getId() method.
+        return $this->phone;
     }
 
     /**
@@ -235,7 +257,7 @@ class MerchantUser extends ActiveRecord implements IdentityInterface
      */
     public function getAuthKey()
     {
-        // TODO: Implement getAuthKey() method.
+        return $this->auth_key;
     }
 
     /**
@@ -248,6 +270,6 @@ class MerchantUser extends ActiveRecord implements IdentityInterface
      */
     public function validateAuthKey($authKey)
     {
-        // TODO: Implement validateAuthKey() method.
+        return $this->getAuthKey() ===$authKey;
     }
 }

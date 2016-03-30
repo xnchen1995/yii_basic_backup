@@ -10,7 +10,6 @@ namespace app\controllers;
 use yii\helpers\Url;
 use yii\web\Controller;
 use app\models\MerchantUser;
-use app\models\MerchantUserForm;
 
 require_once("../vendor/msm/CCPRestSmsSDK.php");
 
@@ -294,6 +293,13 @@ class BackupController extends Controller{
             //TODO 添加成功处理逻辑
             return true;
         }
+    }
+
+    public function actionLogout()
+    {
+        \Yii::$app->user->logout();
+
+        return $this->goHome();
     }
 
 

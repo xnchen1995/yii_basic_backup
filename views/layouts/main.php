@@ -40,13 +40,13 @@ AppAsset::register($this);
             ['label' => 'reset', 'url' => ['/backup/resetfirst']],
             ['label' => 'test', 'url' => ['/backup/test']],
 
-//            Yii::$app->user->isGuest ?
-//                ['label' => 'Login', 'url' => ['/site/login']] :
-//                [
-//                    'label' => 'Logout (' . Yii::$app->user->identity->username . ')',
-//                    'url' => ['/site/logout'],
-//                    'linkOptions' => ['data-method' => 'post']
-//                ],
+            Yii::$app->user->isGuest ?
+                ['label' => 'Login', 'url' => ['/backup/index']] :
+                [
+                    'label' => 'Logout (' . Yii::$app->user->identity->phone . ')',
+                    'url' => ['/backup/logout'],
+                    'linkOptions' => ['data-method' => 'post']
+                ],
         ],
     ]);
     NavBar::end();
