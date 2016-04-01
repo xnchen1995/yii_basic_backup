@@ -54,6 +54,7 @@ class MerchantUser extends ActiveRecord implements IdentityInterface
             'smsVerifyCode' =>'短信验证码',
             'verifyPassword' =>'确认密码',
             'newPassword'=>'新密码',
+            '$verifyNewPassword' => '确认新密码'
         ];
     }
     public function beforeSave($insert)
@@ -97,9 +98,10 @@ class MerchantUser extends ActiveRecord implements IdentityInterface
 //            重置密码 密码页
             [['password','verifyPassword'],'required','on' => 'resetThird','message' => '{attribute}不能为空'],
 //            修改密码
-            [['phone','password','newPassword','verifyNewPassword'],'required','on'=>'changePassword'],
-            [['newPassword','verifyNewPassword'],'string','length' => [4, 20],'on'=>'changePassword',"message" =>'{attribute}必须大于4位'],
-            ['verifyNewPassword', 'compare', 'compareAttribute' => 'newPassword', 'message' => '请重复输入新密码', 'on' => 'changePassword'], //newPassword与verifyNewPassword是否相同
+            [['phone','password','newPassword','verifyNewPassword'],'required','on'=>'changePwd'],
+            [['newPassword','verifyNewPassword'],'string','length' => [4, 20],'on'=>'changePwd',"message" =>'{attribute}必须大于4位'],
+            ['verifyNewPassword', 'compare', 'compareAttribute' => 'newPassword', 'message' => '请重复输入新密码', 'on' => 'changePwd'], //newPassword与verifyNewPassword是否相同
+
         ];
     }
 
@@ -111,7 +113,7 @@ class MerchantUser extends ActiveRecord implements IdentityInterface
         $scenarios['resetFirst'] = ['phone','verifyCode'];
         $scenarios['resetSecond'] = ['resetSmsVerify'];
         $scenarios['resetThird'] =['password','verifyPassword'];
-        $scenarios['changePassword']=['password','newPassword','verifyNewPassword'];
+        $scenarios['changePwd']=['password','newPassword','verifyNewPassword'];
         return $scenarios;
     }
     //
